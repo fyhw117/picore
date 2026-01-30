@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "843101920444",
+    "project_id": "picore-app-v1",
+    "storage_bucket": "picore-app-v1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:843101920444:android:f03c9df512b3261089c4b9",
+        "android_client_info": {
+          "package_name": "com.example.picore"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtlUuLPtpV6OHw8VB9pctkzwktJRbIkn8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
