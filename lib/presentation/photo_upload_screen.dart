@@ -7,6 +7,7 @@ import 'package:picore/services/post_service.dart';
 import 'package:picore/services/storage_service.dart';
 import 'package:picore/services/user_service.dart';
 import 'package:picore/services/ai_scoring_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PhotoUploadScreen extends StatefulWidget {
   const PhotoUploadScreen({super.key});
@@ -19,18 +20,36 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
   final StorageService _storageService = StorageService();
   final PostService _postService = PostService();
   final UserService _userService = UserService();
-  final AiScoringService _aiScoringService =
-      AiScoringService(); // Added AiScoringService
+  final AiScoringService _aiScoringService = AiScoringService();
 
   XFile? _selectedImage;
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _apiKeyController =
-      TextEditingController(); // API Key Input
+  final TextEditingController _apiKeyController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
 
-  // デバッグ用: 毎回入力するのが面倒なので
-  // static const String _debugApiKey = '';
+  @override
+  void initState() {
+    super.initState();
+    _loadApiKey();
+  }
+
+  Future<void> _loadApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedKey = prefs.getString('gemini_api_key');
+    if (savedKey != null && savedKey.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _apiKeyController.text = savedKey;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveApiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('gemini_api_key', key);
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -54,6 +73,9 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
       return;
     }
 
+    // Save API Key locally
+    await _saveApiKey(apiKey);
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -63,7 +85,7 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
       final uid = _userService.currentUserId;
       if (uid == null) throw Exception('ログインが必要です');
 
-      // 1. AI Scoring (並行して走らせてもいいが、スコア取得後に保存したい)
+      // 1. AI Scoring
       final scoreResult = await _aiScoringService.scoreImage(
         _selectedImage!,
         apiKey: apiKey,
@@ -124,7 +146,7 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
                 ),
               ),
 
-            // API Key Input (本来は設定画面や環境変数で管理すべき)
+            // API Key Input
             TextField(
               controller: _apiKeyController,
               decoration: const InputDecoration(
@@ -135,7 +157,7 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
                 ),
                 prefixIcon: Icon(Icons.key),
               ),
-              obscureText: true,
+              obscureText: false, // Changed: Visible
             ),
             const SizedBox(height: 24),
 

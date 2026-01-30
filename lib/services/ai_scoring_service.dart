@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -30,7 +29,7 @@ class AiScoringService {
   AiScoringService({String? apiKey}) : _apiKey = apiKey;
 
   Future<AiScoringResult> scoreImage(XFile imageFile, {String? apiKey}) async {
-    final key = apiKey ?? _apiKey ?? dotenv.env['GEMINI_API_KEY'];
+    final key = apiKey ?? _apiKey;
     if (key == null || key.isEmpty || key == 'YOUR_API_KEY_HERE') {
       throw Exception('Gemini APIキーが必要です');
     }
