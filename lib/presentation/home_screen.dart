@@ -3,6 +3,7 @@ import 'package:picore/config/theme.dart';
 import 'package:picore/presentation/profile_edit_screen.dart';
 import 'package:picore/presentation/photo_upload_screen.dart';
 import 'package:picore/services/auth_service.dart';
+import 'package:picore/services/post_service.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -186,48 +187,90 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
 
-            // Dummy List
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 3,
-              itemBuilder: (context, index) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(12),
-                    leading: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.image, color: Colors.white),
+            // Real List
+            StreamBuilder<List<Post>>(
+              stream: PostService().getRecentPosts(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(child: Text('読み込みエラー'));
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final posts = snapshot.data ?? [];
+
+                if (posts.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('まだ投稿がありません。\n最初の1枚を投稿してみましょう！'),
                     ),
-                    title: const Text(
-                      '朝焼けの公園',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text('ユーザー: Taro'),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.terracotta.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        '92点',
-                        style: TextStyle(
-                          color: AppColors.terracotta,
-                          fontWeight: FontWeight.bold,
+                  );
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) {
+                    final post = posts[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(12),
+                        leading: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                            image: DecorationImage(
+                              image: NetworkImage(post.imageUrl),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
+                        title: Text(
+                          post.description.isNotEmpty
+                              ? post.description
+                              : '（コメントなし）',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          post.aiComment ?? 'AIコメントなし',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        trailing: post.totalScore != null
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.terracotta.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${post.totalScore}点',
+                                  style: const TextStyle(
+                                    color: AppColors.terracotta,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 );
               },
             ),

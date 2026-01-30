@@ -95,4 +95,19 @@ class PostService {
               .toList();
         });
   }
+
+  // 最新の投稿を取得 (全員分)
+  Stream<List<Post>> getRecentPosts() {
+    return _firestore
+        .collection('posts')
+        // .where('isPublic', isEqualTo: true) // 公開機能ができたら有効化
+        .orderBy('createdAt', descending: true)
+        .limit(20)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => Post.fromMap(doc.data(), doc.id))
+              .toList();
+        });
+  }
 }
