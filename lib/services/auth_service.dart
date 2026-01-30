@@ -45,4 +45,13 @@ class AuthService {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+  // パスワードリセットメール送信
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw e;
+    }
+  }
 }

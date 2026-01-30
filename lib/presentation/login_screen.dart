@@ -15,9 +15,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   bool _isLogin = true; // ログインモードか新規登録モードか
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
   String? _errorMessage;
 
   Future<void> _submit() async {
+    // ... (keep existing implementation)
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -49,6 +51,40 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = 'パスワードリセットのため、メールアドレスを入力してください';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _authService.sendPasswordResetEmail(email);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('パスワードリセットメールを送信しました')));
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'メール送信に失敗しました: ${e.toString()}';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,6 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // ... (keep existing Logo/Title/Error)
               // Logo or Title
               Text(
                 'Picore',
@@ -70,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'AI写真採点SNS',
+                '写真採点アプリ',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: AppColors.textSecondary,
@@ -114,15 +151,38 @@ class _LoginScreenState extends State<LoginScreen> {
               // Password Input
               TextField(
                 controller: _passwordController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'パスワード',
-                  prefixIcon: Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  border: const OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: !_isPasswordVisible,
               ),
+
+              // Forgot Password Link (Only in Login mode)
+              if (_isLogin)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _isLoading ? null : _resetPassword,
+                    child: const Text('パスワードをお忘れですか？'),
+                  ),
+                ),
+
               const SizedBox(height: 24),
 
               // Submit Button
