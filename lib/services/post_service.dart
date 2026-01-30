@@ -62,6 +62,9 @@ class PostService {
     required String uid,
     required String imageUrl,
     String description = '',
+    int? totalScore,
+    Map<String, dynamic>? scoreDetails,
+    String? aiComment,
   }) async {
     try {
       await _firestore.collection('posts').add({
@@ -69,8 +72,10 @@ class PostService {
         'imageUrl': imageUrl,
         'description': description,
         'createdAt': FieldValue.serverTimestamp(),
-        'isPublic': false, // Default to private
-        // AI scoring will be triggered separately or via Cloud Functions
+        'isPublic': false,
+        'totalScore': totalScore,
+        'scoreDetails': scoreDetails,
+        'aiComment': aiComment,
       });
     } catch (e) {
       throw Exception('投稿の作成に失敗しました: $e');

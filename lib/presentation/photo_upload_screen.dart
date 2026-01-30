@@ -6,6 +6,7 @@ import 'package:picore/config/theme.dart';
 import 'package:picore/services/post_service.dart';
 import 'package:picore/services/storage_service.dart';
 import 'package:picore/services/user_service.dart';
+import 'package:picore/services/ai_scoring_service.dart';
 
 class PhotoUploadScreen extends StatefulWidget {
   const PhotoUploadScreen({super.key});
@@ -18,11 +19,18 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
   final StorageService _storageService = StorageService();
   final PostService _postService = PostService();
   final UserService _userService = UserService();
+  final AiScoringService _aiScoringService =
+      AiScoringService(); // Added AiScoringService
 
   XFile? _selectedImage;
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _apiKeyController =
+      TextEditingController(); // API Key Input
   bool _isLoading = false;
   String? _errorMessage;
+
+  // デバッグ用: 毎回入力するのが面倒なので
+  // static const String _debugApiKey = '';
 
   Future<void> _pickImage() async {
     try {
@@ -40,6 +48,11 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
 
   Future<void> _uploadAndPost() async {
     if (_selectedImage == null) return;
+    final apiKey = _apiKeyController.text.trim();
+    if (apiKey.isEmpty) {
+      setState(() => _errorMessage = 'Gemini APIキーを入力してください');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -50,22 +63,31 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
       final uid = _userService.currentUserId;
       if (uid == null) throw Exception('ログインが必要です');
 
-      // 1. Upload Image
+      // 1. AI Scoring (並行して走らせてもいいが、スコア取得後に保存したい)
+      final scoreResult = await _aiScoringService.scoreImage(
+        _selectedImage!,
+        apiKey: apiKey,
+      );
+
+      // 2. Upload Image
       final imageUrl = await _storageService.uploadPostImage(
         file: _selectedImage!,
         userId: uid,
       );
 
-      // 2. Create Post Document
+      // 3. Create Post Document with Score
       await _postService.createPost(
         uid: uid,
         imageUrl: imageUrl,
         description: _descriptionController.text.trim(),
+        totalScore: scoreResult.totalScore,
+        scoreDetails: scoreResult.scoreDetails,
+        aiComment: scoreResult.comment,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('アップロードしました！AI採点を開始します...')),
+          SnackBar(content: Text('採点完了！スコア: ${scoreResult.totalScore}点')),
         );
         Navigator.pop(context); // Go back to Home
       }
@@ -101,6 +123,21 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
                   style: const TextStyle(color: Colors.red),
                 ),
               ),
+
+            // API Key Input (本来は設定画面や環境変数で管理すべき)
+            TextField(
+              controller: _apiKeyController,
+              decoration: const InputDecoration(
+                labelText: 'Gemini API Key',
+                hintText: 'AI Studioで取得したAPIキーを入力',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                prefixIcon: Icon(Icons.key),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 24),
 
             // Image Preview Area
             GestureDetector(
