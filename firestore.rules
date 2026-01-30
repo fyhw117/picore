@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------
+    // ヘルパー関数
+    // ---------------------------------------------------------
+    
+    // 認証済みかどうか
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // アクセスしようとしているデータが本人のものか
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // データ作成時に本人として作成しているか
+    function isOwnerCreate() {
+      return isAuthenticated() && request.resource.data.uid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------
+    // コレクション毎のルール
+    // ---------------------------------------------------------
+
+    // ユーザー情報 (users/{userId})
+    match /users/{userId} {
+      // 読み取り: アプリを利用している認証済みユーザーなら誰でも読める（SNS的なプロフィール閲覧のため）
+      allow read: if isAuthenticated();
+      
+      // 書き込み: 本人のドキュメントのみ許可
+      // create, update, delete すべてにおいて userId が一致する必要がある
+      allow write: if isOwner(userId);
+    }
+
+    // 投稿・採点データ (posts/{postId}) - ※今後のための先行定義
+    match /posts/{postId} {
+      // 読み取り: 認証済みユーザーなら読める
+      // (将来的に「全体公開フラグ」があるものだけ読む、などの制限追加を検討)
+      allow read: if isAuthenticated();
+
+      // 作成: ログイン済みで、自分のuidをデータに含めている場合のみ
+      allow create: if isAuthenticated() && 
+                    request.resource.data.uid == request.auth.uid;
+
+      // 更新・削除: 投稿の所有者（作成者）のみ可能
+      allow update, delete: if isAuthenticated() && 
+                            resource.data.uid == request.auth.uid;
+    }
+  }
+}

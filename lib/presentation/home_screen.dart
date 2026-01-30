@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:picore/config/theme.dart';
+import 'package:picore/presentation/profile_edit_screen.dart';
+import 'package:picore/presentation/photo_upload_screen.dart';
+import 'package:picore/services/auth_service.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -14,7 +17,42 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {},
             icon: const Icon(Icons.notifications_none),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.settings)),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.settings),
+            onSelected: (value) {
+              if (value == 'profile') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileEditScreen(),
+                  ),
+                );
+              } else if (value == 'logout') {
+                AuthService().signOut();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 20),
+                    SizedBox(width: 8),
+                    Text('プロフィール設定'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 8),
+                    Text('ログアウト'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -90,7 +128,11 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () {
-                // Upload logic
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const PhotoUploadScreen(),
+                  ),
+                );
               },
               child: Container(
                 height: 150,
@@ -194,7 +236,9 @@ class HomeScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Camera logic
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const PhotoUploadScreen()),
+          );
         },
         child: const Icon(Icons.camera_alt),
       ),
